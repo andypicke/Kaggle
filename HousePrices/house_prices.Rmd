@@ -1,0 +1,86 @@
+---
+title: "Kaggle House Prices Competition"
+output: html_notebook
+---
+
+
+Load the data
+```{r}
+dat <- read.csv("train.csv")
+str(dat)
+```
+
+Wow, there are a lot of featutres! It's going to be challenging to sort through these and get a good overview of what's going on..
+
+First let's look at distribution of sale price
+```{r}
+library(ggplot2)
+ggplot(dat,aes(x=SalePrice))+
+        geom_histogram()
+
+ggplot(dat,aes(x=1,y=SalePrice))+
+        geom_boxplot()
+```
+
+
+Let's see if there is a trend over the past few years (might be influenced by overall US housing market). There doesn't seem to be much of a trend vs year.
+```{r}
+ggplot(dat, aes(YrSold,SalePrice))+
+        geom_boxplot(aes(group=YrSold))
+```
+
+
+My first intution is that the price will be highly dependent on the size of the house, size of lot, and number of bedrooms . Let's check if that is true:
+```{r}
+
+# vs #bedrm above grade: linear trend from 2-4 bedrooms
+ggplot(dat, aes(BedroomAbvGr,SalePrice))+
+        geom_boxplot(aes(group=BedroomAbvGr))
+
+# price vs lot size
+library(dplyr)
+ggplot(filter(dat,LotArea<50000),aes(LotArea,SalePrice))+
+        geom_point()+
+        geom_smooth(method="lm")
+
+```
+
+Let's looks at house prices by neighborhood. There are definitelya couple of neighborhoods which are have higher sale prices (for example NridgHt, NoRidge).
+```{r}
+ggplot(dat, aes(Neighborhood,SalePrice))+
+        geom_boxplot(aes(group=Neighborhood))+
+        coord_flip()
+```
+
+
+Ok there are too many variables to look at each one individually. Let's try computing the correlation of each variable with sale price to see which ones might be more important:
+```{r}
+# figure out which variables are numeric
+is_num <- sapply(dat,is.numeric)
+id_num <- which(is_num)
+names_num=names(is_num)[id_num]
+
+# compute correlation of each numeric variable w/ SalesPrice
+allc <- vector(length(id_num),mode="numeric")
+for (i in seq_along(id_num)){
+        allc[i] <- cor(dat[,id_num[i]] , dat$SalePrice)
+}
+
+# put the results in a data frame so we can sort easily
+cor_df <- data_frame(var=names_num,cor=allc)
+cor_df %>%
+        mutate(abs_cor=abs(cor)) %>%
+        arrange(desc(abs_cor))
+```
+
+```{r}
+ggplot(dat,aes(OverallQual,SalePrice))+
+        geom_point()
+
+ggplot(dat,aes(GrLivArea,SalePrice))+
+        geom_point()
+
+ggplot(dat,aes(factor(GarageCars),SalePrice))+
+        geom_boxplot()
+```
+
